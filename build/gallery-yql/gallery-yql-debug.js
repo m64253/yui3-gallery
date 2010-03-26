@@ -135,4 +135,4 @@ YUI.add('gallery-yql', function(Y) {
 	
 
 
-}, 'gallery-2010.01.27-20' ,{requires:['get', 'event-custom']});
+}, '@VERSION@' ,{requires:['get', 'event-custom']});
