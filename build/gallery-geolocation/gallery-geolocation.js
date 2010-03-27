@@ -6,7 +6,7 @@ YUI.add('gallery-geolocation', function(Y) {
 	}
 	
 	/**
-     * This class adds a sugar class to allow access to YQL (http://developer.yahoo.com/yql/).
+     * This adds a wrapper for the navigator.geolocation in newer browser with fallbacks to gears and IP lookup
      * @module geolocation
      */
 	
@@ -79,7 +79,16 @@ YUI.add('gallery-geolocation', function(Y) {
 			}
 		}, this);
 	};
-		
+	
+	/**
+	 * Used to make jsonp request when IP look up is used
+	 * @private
+	 * @param sUrl {String} sUrl Url to the JSONP service
+	 * @param oParams {Object} Object with key value pairs of the params passed to JSONP service
+	 * @param fCallback {Function} Callback function called when it's done
+	 * @param oContext {Object} Becomes this in the callback
+	 * @return {} Don't return anyting usefull
+	 */
 	jsonp = function(sUrl, oParams, fCallback, oContext) {
 		
 		oParams = oParams || {};
@@ -116,6 +125,15 @@ YUI.add('gallery-geolocation', function(Y) {
 		elHead.appendChild(elScript);
 	};
 		
+	/**
+	 *
+	 * @method Y.geolocation
+	 * @param fSuccess {Function} Success callback fucntion
+	 * @param fFailure {Function} Failure callback fucntion
+	 * @param oContext {Object} Becomes this in the callback
+	 * @return {JSONPRequest}
+	 * @static
+	 */
 	Y.geolocation = function(fSuccess, fFailure, oContext) {
 		w3c.call({
 			success: function(oCoords){

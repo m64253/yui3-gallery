@@ -4,16 +4,32 @@
 	}
 	
 	/**
-     * This adds a wrapper for the navigator.geolocation in newer browser with fallbacks to gears and IP lookup
+     * A simple function to get the latitude and longitude from the HTML5 geolocation API with fallbacks the Google Gears 
+	 * Geolocation API and IP based geo positioning. Inspired by http://github.com/codepo8/YQL-Geo-Library and others.
      * @module geolocation
+     */
+	
+	/**
+     * A simple function to get the latitude and longitude from the HTML5 geolocation API with fallbacks the Google Gears 
+	 * Geolocation API and IP based geo positioning. Inspired by http://github.com/codepo8/YQL-Geo-Library and others.
+     * @class geolocation
+	 * @param fSuccess {Function} Success callback function called when all is done and ok.
+	 * @param fFailure {Function} Failure callback function called when something has gone wrong.
+	 * @param oContext {Object} OPTIONAL Set the scope of the callback functions to this object.
      */
 	
 	var YLang = Y.Lang,
 		w3c,
 		gears,
-		yql,
+		ip,
 		jsonp;
 	
+	/**
+     * <p>Try and use the HTML5 Geolocation API if that fails goto gears</p>
+     *
+     * @method w3c
+     * @private
+     */
 	w3c = function() {
 		var self = this;
 		if (navigator.geolocation) {
@@ -31,6 +47,12 @@
 		}
 	};
 	
+	/**
+     * <p>Try and use the Google Gears Geolocation API if that fails goto ip</p>
+     *
+     * @method gears
+     * @private
+     */
 	gears = function() {
 		var self = this,
 			gearsGeoLocation;
@@ -44,17 +66,23 @@
 						provider: "Gears"
 					});
 			    }, function() {
-					yql.call(self);
+					ip.call(self);
 			    });
 			} else {
-				yql.call(this);
+				ip.call(this);
 			}
 		} else {
-			yql.call(this);
+			ip.call(this);
 		}
 	};
 	
-	yql = function() {
+	/**
+     * <p>Try and use the Google Gears Geolocation API if that fails call the failure callback function</p>
+     *
+     * @method w3c
+     * @private
+     */
+	ip = function() {
 		jsonp('http://jsonip.appspot.com', null, function(oIpData){
 			if (oIpData && oIpData.ip) {
 				jsonp('http://query.yahooapis.com/v1/public/yql', {
@@ -79,7 +107,8 @@
 	};
 	
 	/**
-	 * Used to make jsonp request when IP look up is used
+	 * <p>Used to make jsonp request when IP look up is used</p>
+	 * @method jsonp
 	 * @private
 	 * @param sUrl {String} sUrl Url to the JSONP service
 	 * @param oParams {Object} Object with key value pairs of the params passed to JSONP service
@@ -124,16 +153,20 @@
 	};
 		
 	/**
-	 *
 	 * @method Y.geolocation
-	 * @param fSuccess {Function} Success callback fucntion
-	 * @param fFailure {Function} Failure callback fucntion
-	 * @param oContext {Object} Becomes this in the callback
-	 * @return {JSONPRequest}
+	 * @param fSuccess {Function} Success callback function called when all is done and ok.
+	 * @param fFailure {Function} Failure callback function called when something has gone wrong.
+	 * @param oContext {Object} OPTIONAL Set the scope of the callback functions to this object.
 	 * @static
 	 */
 	Y.geolocation = function(fSuccess, fFailure, oContext) {
 		w3c.call({
+			/**
+	        * @private
+	        * @property success
+	        * @description The callback method
+			* @param {Object} The object containing 
+	        */
 			success: function(oCoords){
 				if (YLang.isObject(oCoords) && YLang.isValue(oCoords.latitude) && YLang.isValue(oCoords.latitude)) {
 					if (Y.Lang.isFunction(fSuccess)) {
@@ -143,6 +176,11 @@
 					fFailure.call(oContext);
 				}
 			},
+			/**
+	        * @private
+	        * @property failure
+	        * @description The callback method
+	        */
 			failure: function(oError){
 				fFailure.call(oContext);
 			}
