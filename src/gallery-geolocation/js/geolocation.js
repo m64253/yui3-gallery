@@ -56,8 +56,8 @@
 	gears = function() {
 		var self = this,
 			gearsGeoLocation;
-		if (window.google && window.google.gears) {
-			gearsGeoLocation = window.google.gears.factory.create('beta.geolocation');
+		if (YLang.isFunction(google.gears.factory.create)) {
+			gearsGeoLocation = google.gears.factory.create('beta.geolocation');
 			if (gearsGeoLocation.hasPermission) {
 				gearsGeoLocation.getCurrentPosition(function(position) {
 					self.success({ 
