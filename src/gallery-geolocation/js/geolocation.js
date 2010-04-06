@@ -21,8 +21,7 @@
 	var YLang = Y.Lang,
 		w3c,
 		gears,
-		ip,
-		jsonp;
+		ip;
 	
 	/**
      * <p>Try and use the HTML5 Geolocation API if that fails goto gears</p>
@@ -30,7 +29,7 @@
      * @method w3c
      * @private
      */
-	w3c = function() {
+	w3c = function(bGoToNext) {
 		var self = this;
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(function(position) {
@@ -40,10 +39,16 @@
 					provider: "W3C"
 				});
 		    }, function(oError) {
-				gears.call(self);
+				if (!bGoToNext) {
+					gears.call(self);
+				} else {
+					self.failure();
+				}
 		    });
-		} else {
+		} else if (!bGoToNext) {
 			gears.call(this);
+		} else {
+			this.failure();
 		}
 	};
 	
@@ -53,10 +58,10 @@
      * @method gears
      * @private
      */
-	gears = function() {
+	gears = function(bGoToNext) {
 		var self = this,
 			gearsGeoLocation;
-		if (YLang.isFunction(google.gears.factory.create)) {
+		if (window.google && google.gears && YLang.isFunction(google.gears.factory.create)) {
 			gearsGeoLocation = google.gears.factory.create('beta.geolocation');
 			if (gearsGeoLocation.hasPermission) {
 				gearsGeoLocation.getCurrentPosition(function(position) {
@@ -66,13 +71,23 @@
 						provider: "Gears"
 					});
 			    }, function() {
-					ip.call(self);
+					if (!bGoToNext) {
+						ip.call(this);
+					} else {
+						this.failure();
+					}
 			    });
 			} else {
-				ip.call(this);
+				if (!bGoToNext) {
+					ip.call(this);
+				} else {
+					this.failure();
+				}
 			}
-		} else {
+		} else if (!bGoToNext) {
 			ip.call(this);
+		} else {
+			this.failure();
 		}
 	};
 	
@@ -83,106 +98,81 @@
      * @private
      */
 	ip = function() {
-		jsonp('http://jsonip.appspot.com', null, function(oIpData){
-			if (oIpData && oIpData.ip) {
-				jsonp('http://query.yahooapis.com/v1/public/yql', {
-					q: 'SELECT * FROM geo.places WHERE woeid IN (SELECT place.woeid FROM flickr.places WHERE (lat,lon) in (SELECT Latitude, Longitude FROM ip.location WHERE ip = "' + oIpData.ip + '"))',
-					format: 'json',
-					env: 'http://datatables.org/alltables.env'
-				}, function(oData){
-					if (!oData.error && oData.query && oData.query.results && oData.query.results.place) {
-						this.success({ 
-							latitude: oData.query.results.place.centroid.latitude,
-							longitude: oData.query.results.place.centroid.longitude,
-							provider: "IP"
-						});
-					} else {
-						this.failure();
-					}
-				}, this);
-			} else {
-				this.failure();
-			}
-		}, this);
-	};
-	
-	/**
-	 * <p>Used to make jsonp request when IP look up is used</p>
-	 * @method jsonp
-	 * @private
-	 * @param sUrl {String} sUrl Url to the JSONP service
-	 * @param oParams {Object} Object with key value pairs of the params passed to JSONP service
-	 * @param fCallback {Function} Callback function called when it's done
-	 * @param oContext {Object} Becomes this in the callback
-	 * @return {} Don't return anyting usefull
-	 */
-	jsonp = function(sUrl, oParams, fCallback, oContext) {
 		
-		oParams = oParams || {};
-		
-		var elScript = document.createElement('script'),
-			elHead = document.getElementsByTagName('head')[0],
-			aParams = [],
-			timer,
-			sSrc,
-			i = YUI.GEO_LOCATION_JSONP.length;
-		
-		YUI.GEO_LOCATION_JSONP[i] = function(oData) {
-			clearTimeout(timer);
-			elHead.removeChild(elScript);
-			fCallback.call(oContext, oData);
-			YUI.GEO_LOCATION_JSONP[i] = function() {};
-		};
-		
-		oParams.callback = 'YUI.GEO_LOCATION_JSONP[' + i + ']';
-		
-		Y.Object.each(oParams, function(sValue, sKey){
-			aParams.push(sKey + '=' + encodeURIComponent(sValue));
+		// Get the client IP address
+		Y.jsonp('http://jsonip.appspot.com', {
+			on: {
+				success: function(oIpData) {
+					
+					// Make a request to YQL to get latitude and longitude
+					var oYQLQuery = new Y.yql('SELECT * FROM geo.places WHERE woeid IN (SELECT place.woeid FROM flickr.places WHERE (lat,lon) in (SELECT Latitude, Longitude FROM ip.location WHERE ip = "' + oIpData.ip + '"))');
+					
+					oYQLQuery.on('query', function(oData){
+						
+						if (oData.results && oData.results.place) {
+							this.success({ 
+								latitude: oData.results.place.centroid.latitude,
+								longitude: oData.results.place.centroid.longitude,
+								provider: "IP"
+							});
+						} else {
+							this.failure();
+						}				
+						
+					}, this);
+					
+					oYQLQuery.on('error', this.failure, this);
+				},
+				failure: this.failure,
+				timeout: this.failure
+			},
+			context: this
 		});
-		
-		sSrc = sUrl + '?' + aParams.join('&');
-		
-	    elScript.setAttribute('src', sSrc);
-
-		timer = setTimeout(function(){
-			elHead.removeChild(elScript);
-			fCallback.call(oContext);
-		}, 30000);
-
-		elHead.appendChild(elScript);
 	};
-		
+			
 	/**
 	 * @method Y.geolocation
 	 * @param fSuccess {Function} Success callback function called when all is done and ok.
 	 * @param fFailure {Function} Failure callback function called when something has gone wrong.
 	 * @param oContext {Object} OPTIONAL Set the scope of the callback functions to this object.
+	 * @param bForce {String} OPTIONAL Use <code>w3c</code> or <code>gears</code> or <code>ip</code>.
 	 * @static
 	 */
-	Y.geolocation = function(fSuccess, fFailure, oContext) {
-		w3c.call({
-			/**
-	        * @private
-	        * @property success
-	        * @description The callback method
-			* @param {Object} The object containing 
-	        */
-			success: function(oCoords){
-				if (YLang.isObject(oCoords) && YLang.isValue(oCoords.latitude) && YLang.isValue(oCoords.latitude)) {
-					if (Y.Lang.isFunction(fSuccess)) {
-						fSuccess.call(oContext, oCoords);
-					}				
-				} else if (Y.Lang.isFunction(fFailure)) {
-					fFailure.call(oContext);
-				}
-			},
-			/**
-	        * @private
-	        * @property failure
-	        * @description The callback method
-	        */
-			failure: function(oError){
-				fFailure.call(oContext);
-			}
-		});
+	Y.geolocation = function(fSuccess, fFailure, oContext, bForce) {
+		
+		var o = {
+		        /**
+	             * @private
+	             * @property success
+	             * @description The callback method
+		         * @param {Object} The object containing 
+	             */
+		        success: function(oCoords){
+		        	if (YLang.isObject(oCoords) && YLang.isValue(oCoords.latitude) && YLang.isValue(oCoords.latitude)) {
+		        		if (Y.Lang.isFunction(fSuccess)) {
+		        			fSuccess.call(oContext, oCoords);
+		        		}				
+		        	} else if (Y.Lang.isFunction(fFailure)) {
+		        		fFailure.call(oContext);
+		        	}
+		        },
+		        /**
+	             * @private
+	             * @property failure
+	             * @description The callback method
+	             */
+		        failure: function(oError){
+		        	fFailure.call(oContext);
+		        }
+			};
+		
+		if (bForce === 'w3c') {
+			w3c.call(o, true);
+		} else if (bForce === 'gears') {
+			gears.call(o, true);
+		} else if (bForce === 'ip') {
+			ip.call(o);
+		} else {
+			w3c.call(o);
+		}
 	};

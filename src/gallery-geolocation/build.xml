@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- YUI 3 Gallery Component Build File -->
-<project name="Geo Location" default="local">
-    <description>Geo Location build File</description>
+<project name="Geolocation" default="local">
+    <description>Gelocation build File</description>
     <property file="build.properties" />
     <import file="${builddir}/3.x/bootstrap.xml" description="Default Build Properties and Targets" />
 </project>
