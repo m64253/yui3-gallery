@@ -39,13 +39,13 @@
 					provider: "W3C"
 				});
 		    }, function(oError) {
-				if (!bGoToNext) {
+				if (bGoToNext) {
 					gears.call(self);
 				} else {
 					self.failure();
 				}
 		    });
-		} else if (!bGoToNext) {
+		} else if (bGoToNext) {
 			gears.call(this);
 		} else {
 			this.failure();
@@ -71,20 +71,18 @@
 						provider: "Gears"
 					});
 			    }, function() {
-					if (!bGoToNext) {
+					if (bGoToNext) {
 						ip.call(this);
 					} else {
 						this.failure();
 					}
 			    });
+			} else if (bGoToNext) {
+				ip.call(this);
 			} else {
-				if (!bGoToNext) {
-					ip.call(this);
-				} else {
-					this.failure();
-				}
+				this.failure();
 			}
-		} else if (!bGoToNext) {
+		} else if (bGoToNext) {
 			ip.call(this);
 		} else {
 			this.failure();
@@ -167,12 +165,12 @@
 			};
 		
 		if (bForce === 'w3c') {
-			w3c.call(o, true);
+			w3c.call(o, false);
 		} else if (bForce === 'gears') {
-			gears.call(o, true);
+			gears.call(o, false);
 		} else if (bForce === 'ip') {
-			ip.call(o);
+			ip.call(o, false);
 		} else {
-			w3c.call(o);
+			w3c.call(o, true);
 		}
 	};
