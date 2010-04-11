@@ -1,8 +1,3 @@
-	// We need to store the jsonp callback gobally
-	if (!YUI.GEO_LOCATION_JSONP) {
-		YUI.GEO_LOCATION_JSONP = [];
-	}
-	
 	/**
      * A simple function to get the latitude and longitude from the HTML5 geolocation API with fallbacks the Google Gears 
 	 * Geolocation API and IP based geo positioning. Inspired by http://github.com/codepo8/YQL-Geo-Library and others.
